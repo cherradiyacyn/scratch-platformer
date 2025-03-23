@@ -1,0 +1,195 @@
+Stage:
+when @greenFlag clicked
+broadcast [Initialize v] and wait
+broadcast [RenderBricks v] and wait
+broadcast [Start v]
+
+Brick:
+when @greenFlag clicked
+hide
+go to x\: (-240) y\: (-180)
+
+when I receive [RenderBricks v]
+createClones::custom
+
+when I start as a clone
+go to x\: (brickX) y\: (brickY)
+show
+
+when I receive [Initialize v]
+set [brickIndex v] to [0]
+set [brickX v] to [0]
+set [brickY v] to [0]
+
+define createClones
+set [brickIndex v] to [1]
+repeat ((length of [bricksData v]::data) / (2))
+    set [brickX v] to (item (brickIndex) of [bricksData v])
+    set [brickY v] to (item ((brickIndex) + (1)) of [bricksData v])
+    create clone of [myself v]
+    change [brickIndex v] by (2)
+end
+set [brickIndex v] to [0]
+
+Player:
+when @greenFlag clicked
+go to x\: (-204) y\: (-48)
+
+define detectInputX
+if <key [right arrow v] pressed?> then
+    set [inputX v] to [1]
+else
+    if <key [left arrow v] pressed?> then
+        set [inputX v] to [-1]
+    else
+        set [inputX v] to [0]
+    end
+end
+
+define computeVelX
+if <(inputX) = [0]> then
+    if <([abs v] of (velX)::operators) \> (frictX)> then
+        if <(velX) \< [0]> then
+            change [velX v] by (frictX)
+        else
+            change [velX v] by ((frictX) * (-1))
+        end
+    else
+        set [velX v] to [0]
+    end
+else
+    change [velX v] by ((accelX) * (inputX))
+    if <([abs v] of (velX)::operators) \> (velXLim)> then
+        set [velX v] to ((velXLim) * (inputX))
+    end
+end
+
+define checkCollisX
+set [predictedX v] to ((velX) + (x position))
+set [collisX v] to [0]
+set [playerIndex v] to [1]
+repeat ((length of [bricksData v]::data) / (2))
+    set [brickX v] to (item (playerIndex) of [bricksData v])
+    set [brickY v] to (item ((playerIndex) + (1)) of [bricksData v])
+    if <<<((predictedX) - (12)) \< ((brickX) + (12))> and <((predictedX) + (12)) \> ((brickX) - (12))>> and <<((y position) - (12)) \< ((brickY) + (12))> and <((y position) + (12)) \> ((brickY) - (12))>>> then
+        set [collisX v] to [1]
+        if <(velX) \> [0]> then
+            set [tempSnap v] to ((brickX) - (24))
+        else
+            set [tempSnap v] to ((brickX) + (24))
+        end
+        if <([abs v] of ((tempSnap) - (x position))::operators) \< ([abs v] of ((snapX) - (x position))::operators)> then
+            set [snapX v] to (tempSnap)
+        end
+    end
+    change [playerIndex v] by (2)
+end
+set [playerIndex v] to [0]
+
+define resolveX
+if <(collisX) = [0]> then
+    change x by (velX)
+else
+    set x to (snapX)
+    set [velX v] to [0]
+end
+
+when I receive [Start v]
+forever
+    handleX::custom
+    handleY::custom
+    handlePitFall::custom
+end
+
+define handleX
+detectInputX::custom
+computeVelX::custom
+checkCollisX::custom
+resolveX::custom
+
+when I receive [Initialize v]
+set [accelX v] to [0.5]
+set [brickX v] to [0]
+set [brickY v] to [0]
+set [collisX v] to [0]
+set [collisY v] to [0]
+set [frictX v] to [0.25]
+set [gravity v] to [-0.75]
+set [inputX v] to [0]
+set [isGrounded v] to [0]
+set [jumpForce v] to [10]
+set [playerIndex v] to [0]
+set [predictedX v] to [0]
+set [predictedY v] to [0]
+set [snapX v] to [0]
+set [snapY v] to [0]
+set [tempSnap v] to [0]
+set [velX v] to [0]
+set [velXLim v] to [5]
+set [velY v] to [0]
+
+define handleY
+applyGravity::custom
+checkJumpInput::custom
+checkCollisY::custom
+resolveY::custom
+
+define applyGravity
+if <(isGrounded) = [0]> then
+    change [velY v] by (gravity)
+end
+
+define checkJumpInput
+if <<key [up arrow v] pressed?> and <(isGrounded) = [1]>> then
+    set [velY v] to (jumpForce)
+    set [isGrounded v] to [0]
+end
+
+define checkCollisY
+set [predictedY v] to ((velY) + (y position))
+set [collisY v] to [0]
+set [playerIndex v] to [1]
+repeat ((length of [bricksData v]::data) / (2))
+    set [brickX v] to (item (playerIndex) of [bricksData v])
+    set [brickY v] to (item ((playerIndex) + (1)) of [bricksData v])
+    if <<<((x position) - (12)) \< ((brickX) + (12))> and <((x position) + (12)) \> ((brickX) - (12))>> and <<((predictedY) - (12)) \< ((brickY) + (12))> and <((predictedY) + (12)) \> ((brickY) - (12))>>> then
+        set [collisY v] to [1]
+        if <(velY) \> [0]> then
+            set [tempSnap v] to ((brickY) - (24))
+        else
+            set [tempSnap v] to ((brickY) + (24))
+        end
+        if <([abs v] of ((tempSnap) - (y position))::operators) \< ([abs v] of ((snapY) - (y position))::operators)> then
+            set [snapY v] to (tempSnap)
+        end
+    end
+    change [playerIndex v] by (2)
+end
+set [playerIndex v] to [0]
+
+define resolveY
+if <(collisY) = [0]> then
+    change y by (velY)
+    set [isGrounded v] to [0]
+else
+    set y to (snapY)
+    set [velY v] to [0]
+    if <(predictedY) \< (y position)> then
+        set [isGrounded v] to [1]
+    end
+end
+
+define handlePitFall
+if <(y position) = [-180]> then
+    set [ghost v] effect to (0)::looks
+    set [velX v] to [0]
+    set [velY v] to [0]
+    repeat (16)
+        change [ghost v] effect by (6.25)::looks
+    end
+    go to x\: (-204) y\: (-48)
+    repeat (16)
+        change [ghost v] effect by (-6.25)::looks
+    end
+    clear graphic effects
+end

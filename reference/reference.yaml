@@ -1,0 +1,502 @@
+# documentation.yaml
+metadata:
+  project_name: "Scratch Platformer"
+  stage_dimensions:
+    width: 480
+    height: 360
+    unit: pixels
+  coordinate_notes: |
+    Coordinates range from x: ±240, y: ±180. (0,0) is the center.
+
+globals:
+  lists:
+    - name: bricksData
+      description: |
+        Stores x/y pairs for brick center coordinates. Each 24x24 brick
+        spans ±12px from its center. Used for platform placement and
+        collision detection.
+      data_format: "sequence of [x1, y1, x2, y2,...]"
+      data:
+        - -12
+        - -48
+        - 12
+        - -48
+        - 36
+        - -48
+        - 108
+        - -96
+        - 156
+        - -96
+        - 108
+        - -120
+        - 156
+        - -120
+        - -228
+        - -144
+        - -204
+        - -144
+        - -180
+        - -144
+        - -84
+        - -144
+        - -60
+        - -144
+        - -36
+        - -144
+        - -12
+        - -144
+        - 12
+        - -144
+        - 36
+        - -144
+        - 60
+        - -144
+        - 84
+        - -144
+        - 108
+        - -144
+        - 132
+        - -144
+        - 156
+        - -144
+        - 180
+        - -144
+        - 204
+        - -144
+        - 228
+        - -144
+        - -228
+        - -168
+        - -204
+        - -168
+        - -180
+        - -168
+        - -156
+        - -168
+        - -132
+        - -168
+        - -108
+        - -168
+        - -84
+        - -168
+        - -60
+        - -168
+        - -36
+        - -168
+        - -12
+        - -168
+        - 12
+        - -168
+        - 36
+        - -168
+        - 60
+        - -168
+        - 84
+        - -168
+        - 108
+        - -168
+        - 132
+        - -168
+        - 156
+        - -168
+        - 180
+        - -168
+        - 204
+        - -168
+        - 228
+        - -168
+
+stage:
+  scripts:
+    - trigger: "when green flag clicked"
+      blocks:
+        - "broadcast [Initialize v] and wait"
+        - "broadcast [RenderBricks v] and wait"
+        - "broadcast [Start v]"
+
+events:
+  broadcasts:
+    - name: Initialize
+      description: "Resets all sprites to their initial states and clears temporary variables"
+      sent_by: Stage
+      received_by: Brick, Player
+
+    - name: RenderBricks
+      description: "Triggers platform generation from bricksData"
+      sent_by: Stage
+      received_by: Brick
+
+    - name: Start
+      description: "Activates the Player's movement loop and enables game controls"
+      sent_by: Stage
+      received_by: Player
+
+sprites:
+  - name: Brick
+    type: platform
+    dimensions:
+      width: 24
+      height: 24
+      unit: pixels
+
+    variables:
+      - name: brickIndex
+        type: counter
+        scope: local
+        description: "Local counter for iterating through bricksData during cloning."
+
+      - name: brickX
+        type: coordinate
+        scope: instance
+        description: "X-center position from bricksData"
+        source: "bricksData list during cloning"
+
+      - name: brickY
+        type: coordinate
+        scope: instance
+        description: "Y-center position from bricksData"
+        source: "bricksData list during cloning"
+
+    scripts:
+      - trigger: "when green flag clicked"
+        blocks:
+          - "hide"
+          - "go to x: (-240) y: (-180)"
+
+      - trigger: "when I receive [Initialize v]"
+        blocks:
+          - "set [brickIndex v] to [0]"
+          - "set [brickX v] to [0]"
+          - "set [brickY v] to [0]"
+
+      - trigger: "when I receive [RenderBricks v]"
+        blocks:
+          - "createClones::custom"
+
+      - trigger: "when I start as a clone"
+        blocks:
+          - "go to x: (brickX) y: (brickY)"
+          - "show"
+
+    custom_blocks:
+      - name: createClones
+        description: "Generates clones for each brick using bricksData."
+        blocks:
+          - "set [brickIndex v] to [1]"
+          - "repeat ((length of [bricksData v]::data) / (2))"
+          - "    set [brickX v] to (item (brickIndex) of [bricksData v])"
+          - "    set [brickY v] to (item ((brickIndex) + (1)) of [bricksData v])"
+          - "    create clone of [myself v]"
+          - "    change [brickIndex v] by (2)"
+          - "end"
+          - "set [brickIndex v] to [0]"
+
+  - name: Player
+    type: character
+    dimensions:
+      width: 24
+      height: 24
+      unit: pixels
+
+    variables:
+      - name: accelX
+        type: physics
+        scope: instance
+        description: "Horizontal acceleration (pixels/frame²). Value = 0.5."
+
+      - name: brickX
+        type: coordinate
+        scope: local
+        description: "Temporary storage for brick X-position during collision checks."
+
+      - name: brickY
+        type: coordinate
+        scope: local
+        description: "Temporary storage for brick Y-position during collision checks."
+
+      - name: collisX
+        type: state
+        scope: instance
+        description: "Horizontal collision state (1 = collision detected)."
+
+      - name: collisY
+        type: state
+        scope: instance
+        description: "Vertical collision state (1 = collision detected)."
+
+      - name: frictX
+        type: physics
+        scope: instance
+        description: "Horizontal friction coefficient (0-1). Value = 0.25."
+
+      - name: gravity
+        type: physics
+        scope: instance
+        description: "Downward acceleration (pixels/frame²). Value = -0.75."
+
+      - name: inputX
+        type: control
+        scope: instance
+        description: "Horizontal input state (-1 = left, 0 = neutral, 1 = right)."
+
+      - name: isGrounded
+        type: state
+        scope: instance
+        description: "Ground state (1 = on ground, 0 = mid-air)."
+
+      - name: jumpForce
+        type: physics
+        scope: instance
+        description: "Upward jump velocity (pixels/frame). Value = 10."
+
+      - name: playerIndex
+        type: counter
+        scope: local
+        description: "Local iterator for bricksData during collision checks."
+
+      - name: predictedX
+        type: coordinate
+        scope: local
+        description: "Temporary storage for predicted X-position during horizontal collision checks."
+
+      - name: predictedY
+        type: coordinate
+        scope: local
+        description: "Temporary storage for predicted Y-position during vertical collision checks."
+
+      - name: snapX
+        type: coordinate
+        scope: instance
+        description: "Target X-position to snap to during horizontal collisions."
+
+      - name: snapY
+        type: coordinate
+        scope: instance
+        description: "Target Y-position to snap to during vertical collisions."
+
+      - name: tempSnap
+        type: coordinate
+        scope: local
+        description: "Temporary storage for calculated snap position during collision checks."
+
+      - name: velX
+        type: movement
+        scope: instance
+        description: "Horizontal velocity (pixels/frame). Reset to 0 on collision."
+
+      - name: velXLim
+        type: physics
+        scope: instance
+        description: "Maximum horizontal speed (pixels/frame). Value = 5."
+
+      - name: velY
+        type: movement
+        scope: instance
+        description: "Vertical velocity (pixels/frame). Positive = up, Negative = down."
+
+    scripts:
+      - trigger: "when green flag clicked"
+        blocks:
+          - "go to x: (-204) y: (-48)"
+
+      - trigger: "when I receive [Initialize v]"
+        blocks:
+          - "set [accelX v] to [0.5]"
+          - "set [brickX v] to [0]"
+          - "set [brickY v] to [0]"
+          - "set [collisX v] to [0]"
+          - "set [collisY v] to [0]"
+          - "set [frictX v] to [0.25]"
+          - "set [gravity v] to [-0.75]"
+          - "set [inputX v] to [0]"
+          - "set [isGrounded v] to [0]"
+          - "set [jumpForce v] to [10]"
+          - "set [playerIndex v] to [0]"
+          - "set [predictedX v] to [0]"
+          - "set [predictedY v] to [0]"
+          - "set [snapX v] to [0]"
+          - "set [snapY v] to [0]"
+          - "set [tempSnap v] to [0]"
+          - "set [velX v] to [0]"
+          - "set [velXLim v] to [5]"
+          - "set [velY v] to [0]"
+
+      - trigger: "when I receive [Start v]"
+        blocks:
+          - "forever"
+          - "    handleX::custom"
+          - "    handleY::custom"
+          - "    handlePitFall::custom"
+          - "end"
+
+    custom_blocks:
+      - name: handleX
+        description: "Orchestrates horizontal movement logic."
+        blocks:
+          - "detectInputX::custom"
+          - "computeVelX::custom"
+          - "checkCollisX::custom"
+          - "resolveX::custom"
+
+      - name: detectInputX
+        description: "Detects left/right arrow input."
+        blocks:
+          - "if <key [right arrow v] pressed?> then"
+          - "    set [inputX v] to [1]"
+          - "else"
+          - "    if <key [left arrow v] pressed?> then"
+          - "        set [inputX v] to [-1]"
+          - "    else"
+          - "        set [inputX v] to [0]"
+          - "    end"
+          - "end"
+
+      - name: computeVelX
+        description: "Calculates horizontal velocity with acceleration, friction, and speed limits."
+        blocks:
+          - "if <(inputX) = [0]> then"
+          - "    if <([abs v] of (velX)) > (frictX)> then"
+          - "        if <(velX) < [0]> then"
+          - "            change [velX v] by (frictX)"
+          - "        else"
+          - "            change [velX v] by ((frictX) * (-1))"
+          - "        end"
+          - "    else"
+          - "        set [velX v] to [0]"
+          - "    end"
+          - "else"
+          - "    change [velX v] by ((accelX) * (inputX))"
+          - "    if <([abs v] of (velX)) > (velXLim)> then"
+          - "        set [velX v] to ((velXLim) * (inputX))"
+          - "    end"
+          - "end"
+
+      - name: checkCollisX
+        description: |
+          Detects horizontal collisions and resolves the closest brick edge.
+          Iterates through all bricks and compares distances using absolute differences.
+        blocks:
+          - "set [predictedX v] to ((velX) + (x position))"
+          - "set [collisX v] to [0]"
+          - "set [playerIndex v] to [1]"
+          - "repeat ((length of [bricksData v]::data) / (2))"
+          - "    set [brickX v] to (item (playerIndex) of [bricksData v])"
+          - "    set [brickY v] to (item ((playerIndex) + (1)) of [bricksData v])"
+          - "    if <<<((predictedX) - (12)) < ((brickX) + (12))> and <((predictedX) + (12)) > ((brickX) - (12))>> and <<((y position) - (12)) < ((brickY) + (12))> and <((y position) + (12)) > ((brickY) - (12))>>> then"
+          - "        set [collisX v] to [1]"
+          - "        if <(velX) > [0]> then"
+          - "            set [tempSnap v] to ((brickX) - (24))"
+          - "        else"
+          - "            set [tempSnap v] to ((brickX) + (24))"
+          - "        end"
+          - "        if <([abs v] of ((tempSnap) - (x position))) < ([abs v] of ((snapX) - (x position)))> then"
+          - "            set [snapX v] to (tempSnap)"
+          - "        end"
+          - "    end"
+          - "    change [playerIndex v] by (2)"
+          - "end"
+          - "set [playerIndex v] to [0]"
+
+      - name: resolveX
+        description: "Applies horizontal movement or snaps to `snapX` and resets `velX` to 0."
+        blocks:
+          - "if <(collisX) = [0]> then"
+          - "    change x by (velX)"
+          - "else"
+          - "    set x to (snapX)"
+          - "    set [velX v] to [0]"
+          - "end"
+
+      - name: handleY
+        description: "Orchestrates vertical movement/jumping logic."
+        blocks:
+          - "applyGravity::custom"
+          - "checkJumpInput::custom"
+          - "checkCollisY::custom"
+          - "resolveY::custom"
+
+      - name: applyGravity
+        description: "Applies downward acceleration when airborne."
+        blocks:
+          - "if <(isGrounded) = [0]> then"
+          - "    change [velY v] by (gravity)"
+          - "end"
+
+      - name: checkJumpInput
+        description: "Handles jump input using UP ARROW key."
+        blocks:
+          - "if <<key [up arrow v] pressed?> and <(isGrounded) = [1]>> then"
+          - "    set [velY v] to (jumpForce)"
+          - "    set [isGrounded v] to [0]"
+          - "end"
+
+      - name: checkCollisY
+        description: |
+          Checks vertical collisions using predicted Y-position.
+          Snaps to brick top/bottom based on movement direction.
+        blocks:
+          - "set [predictedY v] to ((velY) + (y position))"
+          - "set [collisY v] to [0]"
+          - "set [playerIndex v] to [1]"
+          - "repeat ((length of [bricksData v]::data) / (2))"
+          - "    set [brickX v] to (item (playerIndex) of [bricksData v])"
+          - "    set [brickY v] to (item ((playerIndex) + (1)) of [bricksData v])"
+          - "    if <<<((x position) - (12)) < ((brickX) + (12))> and <((x position) + (12)) > ((brickX) - (12))>> and <<((predictedY) - (12)) < ((brickY) + (12))> and <((predictedY) + (12)) > ((brickY) - (12))>>> then"
+          - "        set [collisY v] to [1]"
+          - "        if <(velY) > [0]> then"
+          - "            set [tempSnap v] to ((brickY) - (24))"
+          - "        else"
+          - "            set [tempSnap v] to ((brickY) + (24))"
+          - "        end"
+          - "        if <([abs v] of ((tempSnap) - (y position))) < ([abs v] of ((snapY) - (y position)))> then"
+          - "            set [snapY v] to (tempSnap)"
+          - "        end"
+          - "    end"
+          - "    change [playerIndex v] by (2)"
+          - "end"
+          - "set [playerIndex v] to [0]"
+
+      - name: resolveY
+        description: |
+          Resolves vertical movement and ground state.
+          Uses predictedY comparison for robust ground detection.
+        blocks:
+          - "if <(collisY) = [0]> then"
+          - "    change y by (velY)"
+          - "    set [isGrounded v] to [0]"
+          - "else"
+          - "    set y to (snapY)"
+          - "    set [velY v] to [0]"
+          - "    if <(predictedY) < (y position)> then"
+          - "        set [isGrounded v] to [1]"
+          - "    end"
+          - "end"
+
+      - name: handlePitFall
+        description: "Respawns player at start position if they fall into a pit (y = -180)."
+        blocks:
+          - "if <(y position) = [-180]> then"
+          - "    set [ghost v] effect to (0)::looks"
+          - "    set [velX v] to [0]"
+          - "    set [velY v] to [0]"
+          - "    repeat (16)"
+          - "        change [ghost v] effect by (6.25)::looks"
+          - "    end"
+          - "    go to x: (-204) y: (-48)"
+          - "    repeat (16)"
+          - "        change [ghost v] effect by (-6.25)::looks"
+          - "    end"
+          - "    clear graphic effects"
+          - "end"
+
+assets:
+  costumes:
+    - sprite: Brick
+      name: platform
+      file: Brick.svg
+      resolution: [24, 24]
+
+    - sprite: Player
+      name: character
+      file: Player.svg
+      resolution: [24, 24]
