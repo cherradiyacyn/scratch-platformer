@@ -1,53 +1,32 @@
 {
   "name": "Scratch Platformer",
-  "short_name": "Platformer",
+  "short_name": "Scratch Platformer",
   "description": "A fun platformer game with core mechanics and controller support.",
-  "start_url": "/scratch-platformer",
-  "scope": "/scratch-platformer",
+  "start_url": "/scratch-platformer/",
+  "scope": "/scratch-platformer/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#000000",
   "theme_color": "#000000",
   "categories": ["games", "education"],
-  "screenshots": [
-    {
-      "src": "screenshots/screenshot1.png",
-      "sizes": "1191x892",
-      "type": "image/png"
-    }
-  ],
   "icons": [
     {
-      "src": "android/android-launchericon-192-192.png",
+      "src": "/scratch-platformer/android/android-launchericon-192-192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
-      "src": "android/android-launchericon-512-512.png",
+      "src": "/scratch-platformer/android/android-launchericon-512-512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
-      "src": "android/android-launchericon-192-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "android/android-launchericon-512-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "ios/180.png",
+      "src": "/scratch-platformer/ios/180.png",
       "sizes": "180x180",
       "type": "image/png"
     },
     {
-      "src": "windows11/Square150x150Logo.scale-200.png",
+      "src": "/scratch-platformer/windows11/Square150x150Logo.scale-200.png",
       "sizes": "300x300",
       "type": "image/png"
     }
